@@ -8,7 +8,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-
+	"github.com/go-faker/faker/v4"
+	"flag"
 	"github.com/couchbase/gocb/v2"
 )
 
@@ -50,38 +51,50 @@ func randomSign() string {
 	charset:=[]string{"<",">","="}
 	return charset[rand.Intn(len(charset))]
 }
-func genSelectBlock() string{
-	dataset_map["country"] = "string"
-	dataset_map["address"] = "string"
-	dataset_map["free_parking"] = "bool"
-	dataset_map["city"] = "string"
-	dataset_map["url"] = "string"
-	dataset_map["phone"] = "int"
-	dataset_map["price"] = "int"
-	dataset_map["avg_rating"] = "int"
-	dataset_map["free_breakfast"] = "bool"
-	dataset_map["name"] = "string"
-	dataset_map["email"] = "string"
-	dataset_map["type"] = "string"
-	dataset_map["review"] = "array"
-	//defining review array map
-	array_review_map["date"] = "int"
-	array_review_map["author"] = "string"
-	array_review_map["ratings"] = "array"
-	//defining ratings review map
-	array_ratings_map["value"] = "int"
-	array_ratings_map["cleaniness"] = "int"
-	array_ratings_map["overall"] = "int"
-	array_ratings_map["Check in / front desk"] = "int"
-	array_ratings_map["rooms"] = "int"
-	datset_slice := []string{"country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype"}
+func genSelectBlock(dataset string) string{
+	dataset_slice := []string{}
+	switch dataset{
+	case "hotel":
+		dataset_map["country"] = "string"
+		dataset_map["address"] = "string"
+		dataset_map["free_parking"] = "bool"
+		dataset_map["city"] = "string"
+		dataset_map["url"] = "string"
+		dataset_map["phone"] = "int"
+		dataset_map["price"] = "int"
+		dataset_map["avg_rating"] = "int"
+		dataset_map["free_breakfast"] = "bool"
+		dataset_map["name"] = "string"
+		dataset_map["email"] = "string"
+		dataset_map["type"] = "string"
+		dataset_map["review"] = "array"
+		//defining review array map
+		array_review_map["date"] = "int"
+		array_review_map["author"] = "string"
+		array_review_map["ratings"] = "array"
+		//defining ratings review map
+		array_ratings_map["value"] = "int"
+		array_ratings_map["cleaniness"] = "int"
+		array_ratings_map["overall"] = "int"
+		array_ratings_map["Check in / front desk"] = "int"
+		array_ratings_map["rooms"] = "int"
+		//dataset_slice = {"country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype"}
+		dataset_slice = append(dataset_slice, "country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype")
+	case "person":
+		dataset_map["name"] = "string"
+		dataset_map["age"] = "int"
+		dataset_map["animals"] = "array"
+		dataset_map["gender"] = "string"
+		dataset_map["marital"] = "string"
+		dataset_slice = append(dataset_slice, "name","age","animals","gender","marital")
+	}
 	key :=rand.Intn(2)
 	var select_block string
 	switch key{
 	case 0:
 		select_block = "*"
 	case 1:
-		select_block = fmt.Sprintf("%s", datset_slice[rand.Intn(len(datset_slice))])
+		select_block = fmt.Sprintf("%s", dataset_slice[rand.Intn(len(dataset_slice))])
 	default:
 		select_block = "*"
 
@@ -191,7 +204,18 @@ func genRandomSymbolandValue(field string) string{
 	fmt.Println("field type is ", field)
 	switch dataset_map[field]{
 	case "int":
-		symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1000,2000))
+		switch field{
+		case "phone":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),faker.Phonenumber)
+		case "avg_rating":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1,5))
+		case "age":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1,101))
+		default:
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1000,2000))
+		
+		}
+	
 	case "string":
 		if field=="type"{
 			symbol = fmt.Sprintf("%s = %s",field,htype[rand.Intn(len(htype))])
@@ -220,11 +244,11 @@ func genKeySpace(query string)string{
 	keyspace = strings.Trim(keyspace, "`")
 	return keyspace
 }
-func queryBuilder(query string, num_queries int) []string{
+func queryBuilder(query string, num_queries int, dataset string) []string{
 	genrated_queries:=[]string{}
 	for i:=0;i<num_queries;i++{
 		elements:=extractIndexDefinitionField(query)
-		select_block:=genSelectBlock()
+		select_block:=genSelectBlock(dataset)
 		keyspace:=genKeySpace(query)
 		where_block:=genWhereBlock(elements)
 		var final_query string
@@ -264,21 +288,22 @@ func connect_cluster(queries []string, query_ip string, username string, passwor
 	// success:=0
 	total_number:=len(queries)
 	log.Println("len of queries : ",total_number)
+	wg.Add(total_number)
 	for _,query:= range queries{
-		wg.Add(1)
-		go func(q string){
-			defer wg.Done()
-			err := runQueries(cluster, query)
-			// mutex.Lock()
-			// defer mutex.Unlock()
-			if err != nil {
-				log.Println("Error executing query:", err)
-				// errors+=1
-				return
-			}
-			// success+=1
+		go runQueries(cluster, query)
+		// go func(q string){
+		// 	defer wg.Done()
+		// 	err := runQueries(cluster, query)
+		// 	// mutex.Lock()
+		// 	// defer mutex.Unlock()
+		// 	if err != nil {
+		// 		log.Println("Error executing query:", err)
+		// 		// errors+=1
+		// 		return
+		// 	}
+		// 	// success+=1
 		
-		}(query)
+		// }(query)
 	}
 	wg.Wait()
 	final_time := time.Since(initial_time)
@@ -323,14 +348,30 @@ func runQueries(cluster *gocb.Cluster, queries string)error {
 	return nil
 }
 func main(){
-	str := "CREATE INDEX `idx3_idxprefix` ON keyspacenameplaceholder(`free_breakfast`,`free_parking`,`country`,`city`)"
+	var nodeAddress string
+	var username string
+	var password string
+	var create_query string
+	var dataset string
+	var num_queries int
+	
+	flag.StringVar(&nodeAddress, "nodeAddress", "","ip address of the node")
+	flag.StringVar(&username, "username", "", "username of the node")
+	flag.StringVar(&password, "password", "", "password of the node")
+	flag.StringVar(&create_query, "create_query", "", "create query for which select queries are genrated")
+	flag.StringVar(&dataset, "dataset", "hotel", "Dataset for which the queries are generated")
+	flag.IntVar(&num_queries, "num_queries", 10, "no of queries to be generated for particular create query")
+	flag.Parse()
+
+	//str := "CREATE INDEX `idx3_idxprefix` ON keyspacenameplaceholder(`name`,`phone`)"
 	// create_definitions :=[]string{"CREATE INDEX `idx12_idxprefix` ON `b1.test_scope_1.test_collection_1`(`name` INCLUDE MISSING DESC,`phone`,`type`)","CREATE INDEX `idx12_idxprefix` ON keyspacenameplaceholder(`name` INCLUDE MISSING DESC,`phone`,`type`)","CREATE INDEX `idx13_idxprefix` ON keyspacenameplaceholder(`city` INCLUDE MISSING ASC, `phone`)"}
-	queryBuilder(str,10)
+
+	query_list:=queryBuilder(create_query,num_queries,dataset)
 	// fmt.Println(queries)
 	// ip :="192.168.64.26"
 	// username := "Administrator"
 	// password := "password"
-	// connect_cluster(queries, ip, username, password)
+	connect_cluster(query_list, nodeAddress, username, password)
 	// idx_def:=extractIndexDefinitionField(str)
 	// select_block:=genSelectBlock()
 	// where_block:=genWhereBlock(idx_def)

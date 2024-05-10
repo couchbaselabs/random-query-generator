@@ -2,7 +2,10 @@ module rqg
 
 go 1.21
 
-require github.com/couchbase/gocb/v2 v2.8.0
+require (
+	github.com/couchbase/gocb/v2 v2.8.0
+	github.com/go-faker/faker/v4 v4.4.1
+)
 
 require (
 	github.com/couchbase/gocbcore/v10 v10.4.0 // indirect
