@@ -81,12 +81,15 @@ func genSelectBlock(dataset string) string{
 		//dataset_slice = {"country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype"}
 		dataset_slice = append(dataset_slice, "country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype")
 	case "person":
-		dataset_map["name"] = "string"
+		dataset_map["firstName"] = "string"
+		dataset_map["lastName"] = "string"
+		dataset_map["country"] = "string"
+		dataset_map["streetAddress"] = "string"
+		dataset_map["city"] = "string"
+		dataset_map["title"] = "string"
+		dataset_map["suffix"] = "string"
 		dataset_map["age"] = "int"
-		dataset_map["animals"] = "array"
-		dataset_map["gender"] = "string"
-		dataset_map["marital"] = "string"
-		dataset_slice = append(dataset_slice, "name","age","animals","gender","marital")
+		dataset_slice = append(dataset_slice, "firstName","lastName","country","streetAddress","city","title","suffix","age")
 	}
 	key :=rand.Intn(2)
 	var select_block string
@@ -253,7 +256,7 @@ func queryBuilder(query string, num_queries int, dataset string) []string{
 		where_block:=genWhereBlock(elements)
 		var final_query string
 		if array_fields==""{
-			final_query = fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1",select_block,keyspace,where_block)
+			final_query = fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT %d",select_block,keyspace,where_block,randomNumber(1,100))
 		}else{
 			final_query = fmt.Sprintf("SELECT %s FROM %s WHERE ANY %s IN %s SATISFIES %s END",select_block,keyspace,where_block,where_block,where_block)
 		}
