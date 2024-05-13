@@ -24,6 +24,7 @@ var dataset_map = make(map[string]string)
 var array_review_map = make(map[string]string)
 var array_ratings_map = make(map[string]string)
 var htype = []string{"Inn", "Hostel", "Place", "Center", "Hotel", "Motel", "Suites"}
+var job_title = []string{"Engineering", "Sales", "Support"}
 var boolean = []string{"true", "false"}
 var clauses = []string{"AND","OR"}
 var array_fields string
@@ -45,6 +46,13 @@ func randomNumber(min int, max int) int {
 	// Generate a random integer within the range
 	randomInt := rand.Intn(max-min+1) + min
 	return randomInt
+}
+func randomFloatNumber(min float32, max float32) float32 {
+	rand.Seed(time.Now().UnixNano())
+
+	// Generate a random float within the range
+	randomFloat := min + rand.Float32()*max-min+1
+	return randomFloat
 }
 func randomSign() string {
 	rand.Seed(time.Now().UnixNano())
@@ -78,7 +86,6 @@ func genSelectBlock(dataset string) string{
 		array_ratings_map["overall"] = "int"
 		array_ratings_map["Check in / front desk"] = "int"
 		array_ratings_map["rooms"] = "int"
-		//dataset_slice = {"country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype"}
 		dataset_slice = append(dataset_slice, "country","address","free_parking","city","url","phone","price","avg_rating","free_breakfast","name","email","htype")
 	case "person":
 		dataset_map["firstName"] = "string"
@@ -90,6 +97,15 @@ func genSelectBlock(dataset string) string{
 		dataset_map["suffix"] = "string"
 		dataset_map["age"] = "int"
 		dataset_slice = append(dataset_slice, "firstName","lastName","country","streetAddress","city","title","suffix","age")
+	case "employee":
+		dataset_map["join_day"] = "int"
+		dataset_map["join_yr"] = "int"
+		dataset_map["name"] = "string"
+		dataset_map["test_rate"] = "int"
+		dataset_map["job_title"] = "string"
+		dataset_map["join_mo"] = "int"
+		dataset_map["email"] = "string"
+		dataset_slice = append(dataset_slice, "join_day", "join_yr", "name", "test_rate", "job_title", "join_mo", "email")
 	}
 	key :=rand.Intn(2)
 	var select_block string
@@ -122,15 +138,15 @@ func concatenateSentences(sentences []string, N int, clause []string) string {
 
 
 func genWhereBlock(fields []string) string{
-	for i,ele := range fields{
-		fmt.Printf("array element %d is %s\n",i,ele)
+	for _,ele := range fields{
+		//fmt.Printf("array element %d is %s\n",i,ele)
 		if strings.Contains(ele,"ARRAY") || strings.Contains(ele,"array") && array_fields!=""{
 			array_fields = ele
 			array_fields:=strings.Split(strings.Split(array_fields,"ARRAY")[1],".")
 			for i,ele:= range array_fields{
 				array_fields[i]=strings.Trim(ele," `")
 			}
-			fmt.Println("array string is ", array_fields)
+			//fmt.Println("array string is ", array_fields)
 			break
 		}
 	}
@@ -138,7 +154,7 @@ func genWhereBlock(fields []string) string{
 //Remove all backticks
 	for i,ele:= range fields{
 		fields[i]=strings.Trim(ele," `")
-		fmt.Printf("fields %d is %s\n",i,fields[i])
+		//fmt.Printf("fields %d is %s\n",i,fields[i])
 	}
 	//Check for INCLUDE keyword and set leading key
 	for i,ele:= range fields{
@@ -155,17 +171,18 @@ func genWhereBlock(fields []string) string{
 	if HAS_LEADING_KEY{
 		LEADING_KEY=fields[0]
 	}
-	fmt.Printf("leading key %s\n",LEADING_KEY)
+	//fmt.Printf("leading key %s\n",LEADING_KEY)
 	key_fields := []string{}
-	for i,ele :=range fields{
+	for _,ele :=range fields{
 		// fmt.Printf("element %d is %s\n",i,ele)
 		if _,ok := dataset_map[ele]; ok{
-			fmt.Printf("element %d is %s\n",i,ele)
+			//fmt.Printf("element %d is %s\n",i,ele)
 			key_fields = append(key_fields, ele)
 		}
 	}
 	//constructing the fields for the where clause
 	whereClauses:=getWhereClause(key_fields)
+	//fmt.Println("where clauses are : ", whereClauses)
 	if !HAS_LEADING_KEY{
 		whereClauses[0],whereClauses[len(whereClauses)-1]=whereClauses[len(whereClauses)-1],whereClauses[0]
 	}
@@ -175,7 +192,7 @@ func genWhereBlock(fields []string) string{
 	   // fmt.Println(result)
 	    results = append(results, string(result))
 	}
-	fmt.Println("results",results[rand.Intn(len(results))])
+	//fmt.Println("results",results[rand.Intn(len(results))])
 
 	return results[rand.Intn(len(results))]
 }
@@ -184,19 +201,8 @@ func extractIndexDefinitionField(query string) []string {
 	elements := []string{}
 	matches := re.FindStringSubmatch(query)
 	if len(matches) > 1 {
-		// if strings.Contains(matches[1],"ARRAY") || strings.Contains(matches[1],"array"){
-		// 	array_re:=regexp.MustCompile(`(?m)ARRAY .*?\((.*)\) .*? .*? IN \x60(.*?)\x60`)
-		// 	array_matches:=array_re.FindStringSubmatch(matches[1])
-		// 	if len(array_matches)>1{
-		// 		fmt.Println("array fields is : ",array_matches[1])
-		// 		fmt.Println("array indexed fields is : ",array_matches[2])
-		// 		array_fields=array_matches[1]
-		// 		array_indexed_fields=array_matches[2]
-				
-		// 	}
-		// }
 		elements = strings.Split(matches[1], ",")
-		fmt.Println("Elements are ",elements)
+		//fmt.Println("Elements are ",elements)
 		return elements
 	}else{
 		return elements
@@ -204,7 +210,7 @@ func extractIndexDefinitionField(query string) []string {
 }
 func genRandomSymbolandValue(field string) string{
 	var symbol string
-	fmt.Println("field type is ", field)
+	//fmt.Println("field type is ", field)
 	switch dataset_map[field]{
 	case "int":
 		switch field{
@@ -214,6 +220,14 @@ func genRandomSymbolandValue(field string) string{
 			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1,5))
 		case "age":
 			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1,101))
+		case "join_day":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1,31))
+		case "join_mo":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1,12))
+		case "join_yr":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1990,2025))
+		case "test_rate":
+			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomFloatNumber(1.0,12.0))
 		default:
 			symbol = fmt.Sprintf("%s %s %d",field,randomSign(),randomNumber(1000,2000))
 		
@@ -222,6 +236,9 @@ func genRandomSymbolandValue(field string) string{
 	case "string":
 		if field=="type"{
 			symbol = fmt.Sprintf("%s = %s",field,htype[rand.Intn(len(htype))])
+		}
+		if field=="job_title"{
+			symbol = fmt.Sprintf("%s = %s",field,job_title[rand.Intn(len(job_title))])
 		}else{
 			symbol = fmt.Sprintf("%s LIKE '%%%c%%'",field,randomAlphabet())
 		}
@@ -239,7 +256,7 @@ func getWhereClause(fields []string) []string{
 		str := genRandomSymbolandValue(field)
 		constructedWhereQueries = append(constructedWhereQueries, str)
 	}
-	fmt.Println("contsructed queries ", constructedWhereQueries)
+	//fmt.Println("contsructed queries ", constructedWhereQueries)
 	return constructedWhereQueries
 }
 func genKeySpace(query string)string{
@@ -294,48 +311,16 @@ func connect_cluster(queries []string, query_ip string, username string, passwor
 	wg.Add(total_number)
 	for _,query:= range queries{
 		go runQueries(cluster, query)
-		// go func(q string){
-		// 	defer wg.Done()
-		// 	err := runQueries(cluster, query)
-		// 	// mutex.Lock()
-		// 	// defer mutex.Unlock()
-		// 	if err != nil {
-		// 		log.Println("Error executing query:", err)
-		// 		// errors+=1
-		// 		return
-		// 	}
-		// 	// success+=1
-		
-		// }(query)
 	}
 	wg.Wait()
 	final_time := time.Since(initial_time)
 	defer func ()  {
-		log.Println(final_time)
-		log.Printf("Sucuessful queries : %d\n",success)
-		log.Printf("Failed queries : %d\n",errors)
-		log.Printf("Pending queries : %d\n",total_number-(success+errors))
+		fmt.Println("time taken for execution of queries",final_time)
+		fmt.Printf("Sucuessful queries : %d\n",success)
+		fmt.Printf("Failed queries : %d\n",errors)
+		fmt.Printf("Pending queries : %d\n",total_number-(success+errors))
 	}()
 
-	// for _, query := range queries {
-	// 	log.Println(query)
-	// 	result, err := cluster.Query(query, &gocb.QueryOptions{Adhoc: true})
-	// 	log.Println("Executing queries")
-	// 	// fmt.Print(results)
-	// 	if err != nil {
-	// 		log.Printf("Query execution error: %v", err)
-	// 		// http.Error(w, "Failed to execute query", http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	var r interface{}
-	// 	for result.Next() {
-	// 		err := result.Row(&r)
-	// 		if err != nil {
-	// 			panic(err)
-	// 		}
-	// 		fmt.Println("result *******-", r)
-	// 	}
-	// }
 }
 func runQueries(cluster *gocb.Cluster, queries string)error {
 	defer wg.Done()
@@ -366,19 +351,9 @@ func main(){
 	flag.IntVar(&num_queries, "num_queries", 10, "no of queries to be generated for particular create query")
 	flag.Parse()
 
-	//str := "CREATE INDEX `idx3_idxprefix` ON keyspacenameplaceholder(`name`,`phone`)"
-	// create_definitions :=[]string{"CREATE INDEX `idx12_idxprefix` ON `b1.test_scope_1.test_collection_1`(`name` INCLUDE MISSING DESC,`phone`,`type`)","CREATE INDEX `idx12_idxprefix` ON keyspacenameplaceholder(`name` INCLUDE MISSING DESC,`phone`,`type`)","CREATE INDEX `idx13_idxprefix` ON keyspacenameplaceholder(`city` INCLUDE MISSING ASC, `phone`)"}
 
 	query_list:=queryBuilder(create_query,num_queries,dataset)
-	// fmt.Println(queries)
-	// ip :="192.168.64.26"
-	// username := "Administrator"
-	// password := "password"
+	
 	connect_cluster(query_list, nodeAddress, username, password)
-	// idx_def:=extractIndexDefinitionField(str)
-	// select_block:=genSelectBlock()
-	// where_block:=genWhereBlock(idx_def)
-
-	// fmt.Printf("SELECT %s FROM keyspace where %s\n",select_block,where_block)
 	
 }
