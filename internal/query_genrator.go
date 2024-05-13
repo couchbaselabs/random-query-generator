@@ -191,7 +191,7 @@ func genWhereBlock(fields []string) string{
 	if len(whereClauses)==0{
 		panic("Field extraction is unsucessful , ensure the create query is well formed or make sure that the dataset lines up with the dataset")
 	}
-	fmt.Println("where clauses are : ", whereClauses)
+	//fmt.Println("where clauses are : ", whereClauses)
 	if !HAS_LEADING_KEY{
 		whereClauses[0],whereClauses[len(whereClauses)-1]=whereClauses[len(whereClauses)-1],whereClauses[0]
 	}
