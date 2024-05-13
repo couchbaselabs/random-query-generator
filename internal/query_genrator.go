@@ -14,7 +14,7 @@ import (
 )
 
 var wg sync.WaitGroup
-var HAS_INCLUDE bool=true
+var HAS_INCLUDE bool=false
 var HAS_LEADING_KEY bool=true
 var mutex sync.Mutex
 var LEADING_KEY string
@@ -125,10 +125,16 @@ func concatenateSentences(sentences []string, N int, clause []string) string {
 		N = len(sentences)
 	}
 	var builder strings.Builder
+	var clauses string
 	for i := 0; i < N; i++ {
 		builder.WriteString(sentences[i])
 		if i < N-1 {
-		    clauses:=clause[rand.Intn(len(clause))]
+			if HAS_INCLUDE{
+				clauses=clause[rand.Intn(len(clause))]
+			}else{
+				clauses="AND"
+			}
+		    
 			builder.WriteString(" " + clauses + " ")
 		}
 	}
@@ -182,7 +188,10 @@ func genWhereBlock(fields []string) string{
 	}
 	//constructing the fields for the where clause
 	whereClauses:=getWhereClause(key_fields)
-	//fmt.Println("where clauses are : ", whereClauses)
+	if len(whereClauses)==0{
+		panic("Field extraction is unsucessful , ensure the create query is well formed or make sure that the dataset lines up with the dataset")
+	}
+	fmt.Println("where clauses are : ", whereClauses)
 	if !HAS_LEADING_KEY{
 		whereClauses[0],whereClauses[len(whereClauses)-1]=whereClauses[len(whereClauses)-1],whereClauses[0]
 	}
