@@ -188,6 +188,7 @@ func genWhereBlock(fields []string) string{
 	}
 	//constructing the fields for the where clause
 	whereClauses:=getWhereClause(key_fields)
+
 	if len(whereClauses)==0{
 		panic("Field extraction is unsucessful , ensure the create query is well formed or make sure that the dataset lines up with the dataset")
 	}
@@ -206,9 +207,10 @@ func genWhereBlock(fields []string) string{
 	return results[rand.Intn(len(results))]
 }
 func extractIndexDefinitionField(query string) []string {
-	re:=regexp.MustCompile(`(?m)CREATE INDEX .*? ON .*?\((.*)\)`)
+	re:=regexp.MustCompile(`(?m)CREATE.*?INDEX .*? ON .*?\((.*?)\)`)
 	elements := []string{}
 	matches := re.FindStringSubmatch(query)
+	//fmt.Print("matches are ", matches)
 	if len(matches) > 1 {
 		elements = strings.Split(matches[1], ",")
 		//fmt.Println("Elements are ",elements)
